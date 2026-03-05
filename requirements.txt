@@ -1,0 +1,2 @@
+streamlit>=1.38.0
+oracledb>=1.6.0
