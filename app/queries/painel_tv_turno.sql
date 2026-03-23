@@ -45,6 +45,7 @@ RANGES AS (
     JOIN TURNOS_BASE TB ON TA.ID = TB.ID
 )
 SELECT DISTINCT
+    A.DT_GERACAO_LOTE AS DT_GERACAO_FULL,
     TO_CHAR(A.DT_GERACAO_LOTE, 'hh24:mi') AS HORA_GERACAO,
     TO_CHAR(A.DT_ATEND_LOTE, 'hh24:mi') AS HORA_ATEND,
     OBTER_VALOR_DOMINIO(2116, A.IE_STATUS_LOTE) AS DS_STATUS_LOTE,
@@ -67,7 +68,9 @@ WHERE 1=1
               NVL(REGEXP_SUBSTR(OBTER_HORARIO_ITEM_LOTE(A.NR_SEQUENCIA, AL.CD_MATERIAL), '[^ ]+', 1, 1), '00:00'), 
               'DD/MM/YYYY HH24:MI') BETWEEN R.DH_INICIO AND R.DH_FIM
     )
-    AND A.IE_STATUS_LOTE = 'G'
+    -- Garante que o lote continue na tela se estiver Gerado ('G'), Aberto/Em Atendimento ('A','E') 
+    -- Evitando que ele suma se alguém dispensou apenas 1 item do lote e deixou o resto atrasando.
+    AND A.IE_STATUS_LOTE IN ('G', 'A', 'E')
     AND M.NR_ATENDIMENTO IS NOT NULL
     AND (A.NR_LOTE_AGRUPAMENTO IS NULL OR A.IE_AGRUPAMENTO = 'S')
     AND OBTER_SE_LOTE_ACM_SN(A.NR_SEQUENCIA, 'SN') = 'N' 
@@ -75,7 +78,7 @@ WHERE 1=1
     AND A.NR_SEQ_CLASSIF != 6
     AND AL.CD_MATERIAL IS NOT NULL
     AND AL.DT_SUPENSAO IS NULL
-    AND A.CD_SETOR_ATENDIMENTO = 70 -- 9º Andar (manter paramétrico futuramente)
+    -- AND A.CD_SETOR_ATENDIMENTO = 70 -- 9º Andar (manter paramétrico futuramente)
 ORDER BY 
-    HORA_GERACAO, 
+    DT_GERACAO_FULL, -- Ordenação temporal real sem quebrar DISTINCT
     NM_PACIENTE

@@ -70,38 +70,61 @@ def render_painel():
     else:
         df_visual["PACIENTE/LEITO"] = df_visual.apply(lambda r: f"{str(r.get('NM_PACIENTE', 'N/A'))[:25]} - {r.get('DS_LEITO', '')}", axis=1)
         
-    df_visual["STATUS"] = df_visual["DS_STATUS_LOTE"].apply(
-        lambda x: "🟢 Enviado" if str(x).lower().strip() == "distribuido" else ("🟡 Pendente" if "gerado" in str(x).lower().strip() else f"🔴 {x}")
-    )
+    # Lógica Visual Refinada de Status e Atrasos
+    agora = pd.Timestamp.now()
+    
+    def avaliar_status(row):
+        texto = str(row.get("DS_STATUS_LOTE", "")).lower().strip()
+        
+        # Se veio Distribuído, o que é raro já que barramos no SQL a maioria dos finalizados
+        if "distribuido" in texto:
+            return "🟢 Enviado"
+        
+        # Caso esteja Gerado, Aberto, etc - precisamos checar há quanto tempo está lá
+        dt_geracao = pd.to_datetime(row.get("DT_GERACAO_FULL")) if pd.notna(row.get("DT_GERACAO_FULL")) else None
+        
+        if dt_geracao:
+            # Se for maior que 2 horas (exemplo flexível) na tela sem distribuir, fica Crítico
+            diferenca_hs = (agora - dt_geracao).total_seconds() / 3600
+            if diferenca_hs > 2:
+                return "🔴 Atrasado Crítico"
+            elif diferenca_hs > 1:
+                return "🟠 Em Atraso"
+                
+        return "🟡 Pendente (Progresso)"
+
+    df_visual["STATUS"] = df_visual.apply(avaliar_status, axis=1)
     
     # Formata colunas cruas para exibição do Grid 1
     df_grid = df_visual[["HORA_ATEND", "PACIENTE/LEITO", "DS_TURNO", "STATUS"]]
     df_grid.columns = ["HORA", "PACIENTE_LEITO", "TURNO", "STATUS_ENTREGA"]
     
-    # Exibir métricas e o grid formatado usando container_width total
+    # Exibir métricas da carga de trabalho global (Mesmo não mostrando todos, o número avisa o time)
     c1, c2, c3 = st.columns(3)
     c1.metric("Total de Lotes no Turno", len(df_grid))
-    c2.metric("Lotes Pendentes", len(df_grid[df_grid["STATUS_ENTREGA"].str.contains("Pendente|🔴")]))
+    c2.metric("Lotes Pendentes", len(df_grid[df_grid["STATUS_ENTREGA"].str.contains("Pendente|🔴|🟠")]))
     c3.metric("Última Atualização", pd.Timestamp.now().strftime('%H:%M'))
     
-    # Monta a estrutura de exibição dos Lotes principais
-    st.subheader("Lista de Pacientes / Lotes do Turno")
+    # Monta a estrutura limitando ao Top 5
+    st.subheader("Fila de Espera (Próximos 5 Lotes a Separar)")
     
-    # Busca apenas os do primeiro registro por padrão (para não explodir a tela da TV com requisições)
+    # Pega apenas os 5 primeiros registros para não estender a tela da TV para baixo
+    df_grid_tv = df_grid.head(5)
+    
+    # Busca o primeiro registro para detalhar
     primeiro_lote = df_visual.iloc[0]
     nr_lote = int(primeiro_lote["NR_LOTE"]) if pd.notna(primeiro_lote.get("NR_LOTE")) else 0
     # NR_PRESCRICAO não está na view original reduzida da TV, se mockarmos passamos zero.
     
     st.dataframe(
-        df_grid, 
+        df_grid_tv, 
         use_container_width=True, 
         hide_index=True,
-        height=400 
     )
     
     # Grid 2 Focado na TV (Mostra a Cesta/Itens do 1º da Fila)
     st.markdown("---")
-    st.markdown(f"### 📦 Cesta de Separação / Itens do Próximo Paciente: **{primeiro_lote['PACIENTE/LEITO']}**")
+    st.markdown(f"### 📦 Cesta de Separação — Lote: **{nr_lote}** | Paciente: **{primeiro_lote['PACIENTE/LEITO']}**")
     
     try:
         cfg = oracle.config_from_secrets()
@@ -116,9 +139,9 @@ def render_painel():
             conn.close()
             
             if not df_itens.empty:
-                # Filtrar colunas mais amigáveis para TV
-                df_itens_tv = df_itens[["DS_MATERIAL", "QT_DISPENSAR", "DS_HORARIO"]].fillna("N/A")
-                df_itens_tv.columns = ["MEDICAMENTO / MATERIAL", "QTD", "HORÁRIOS"]
+                # Filtrar colunas mais amigáveis para TV, incluindo o LOTE
+                df_itens_tv = df_itens[["NR_LOTE", "DS_MATERIAL", "QT_DISPENSAR", "DS_HORARIO"]].fillna("N/A")
+                df_itens_tv.columns = ["LOTE", "MEDICAMENTO / MATERIAL", "QTD", "HORÁRIOS"]
                 
                 st.dataframe(
                     df_itens_tv,
