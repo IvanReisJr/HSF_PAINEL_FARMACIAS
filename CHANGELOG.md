@@ -20,3 +20,9 @@
 - Adicionado módulo de conexão Oracle com oracledb e função de SELECT 1.
 - Incluído expander no painel para testar conexão (campos e botão).
 - Leitura opcional de credenciais via st.secrets['oracle'].
+
+## 0.2.0-draft - Planejamento Painel TV (Em Análise)
+- Análise estratégica inserida para o Painel de TV focado na distribuição de medicamentos.
+- Planejamento de arquitetura baseada em Clean Code, SOLID e YAGNI.
+- Testes preliminares em `tests/test_painel_tv.py`.
+- **Ressalva LGPD**: Mantida a visibilidade do nome de pacientes na TV aguardando validação final de risco assumido pelo cliente/parceiro da farmácia.
