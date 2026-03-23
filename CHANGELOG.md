@@ -21,8 +21,11 @@
 - Incluído expander no painel para testar conexão (campos e botão).
 - Leitura opcional de credenciais via st.secrets['oracle'].
 
-## 0.2.0-draft - Planejamento Painel TV (Em Análise)
-- Análise estratégica inserida para o Painel de TV focado na distribuição de medicamentos.
-- Planejamento de arquitetura baseada em Clean Code, SOLID e YAGNI.
-- Testes preliminares em `tests/test_painel_tv.py`.
-- **Ressalva LGPD**: Mantida a visibilidade do nome de pacientes na TV aguardando validação final de risco assumido pelo cliente/parceiro da farmácia.
+## 0.2.0 - Lançamento da Feature: Painel TV (Dispensação)
+- Implementada interface `pages/painel_tv.py` de Gestão à Vista orientada para Fila de Pendências.
+- Criada a query dedicadada `painel_tv_turno.sql` (exibindo apenas `IE_STATUS_LOTE = G`).
+- Modificação de layout para **TV / Tela passiva** (`initial_sidebar_state="collapsed"`, `use_container_width=True`), embutindo atualização via `@st.fragment(run_every="60s")` a fim de desonerar o Oracle no longo prazo.
+- Layout de dupla visão nativa (Grid Principal: Fila de lotes pendentes do turno; Grid 2 Inferior Mestre-Detalhe: Automático sobre a Cesta do 1º Lote da Fila utilizando reuso de `farmacia_central_grid2.sql`).
+- **Comitê de Privacidade**: Toggle LGPD incluído no sidebar para anonimização instantânea de nomes (`Modo Anônimo`).
+- Planejamento de caso documentado.
+- Esboço de testes iniciais em `tests/test_painel_tv.py`.
