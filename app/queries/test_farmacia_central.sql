@@ -84,7 +84,7 @@ WHERE 1=1
               NVL(REGEXP_SUBSTR(OBTER_HORARIO_ITEM_LOTE(A.NR_SEQUENCIA, AL.CD_MATERIAL), '[^ ]+', 1, 1), '00:00'), 
               'DD/MM/YYYY HH24:MI') BETWEEN R.DH_INICIO AND R.DH_FIM
     )
-    --AND A.IE_STATUS_LOTE IN ('G', 'A', 'E') -- Alinhando com a TV para não omitir os Parciais
+    -- Revertido para comportamento estrito de Produção
     AND A.IE_STATUS_LOTE IN ('G')
     AND M.NR_ATENDIMENTO IS NOT NULL
     AND (A.NR_LOTE_AGRUPAMENTO IS NULL OR A.IE_AGRUPAMENTO = 'S')
