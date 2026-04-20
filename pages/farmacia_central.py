@@ -8,7 +8,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("Farmácia Central - Painel de Monitoramento")
+st.title("Farmácia Central - Monitoramento")
 
 @st.cache_data(ttl=300)
 def load_data():
